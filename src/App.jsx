@@ -34,23 +34,27 @@ function App() {
   };
 
   useEffect(() => {
-    if (!settings.notificationsEnabled || !settings.notificationTime) return;
+    if (!settings.notificationsEnabled || !settings.notificationTime || !user?.username) return;
 
     const checkTime = () => {
-        const now = new Date();
-        const [targetHour, targetMinute] = settings.notificationTime.split(':');
-        
-        if (now.getHours() === parseInt(targetHour) && now.getMinutes() === parseInt(targetMinute)) {
-            // Check if already notified today? 
-            // Simplified: Just notify. Browser throttles or user closes.
-            if (Notification.permission === 'granted') {
-                new Notification('Waktunya Ngaji!', {
-                    body: `Assalamualaikum ${user.username}, ayo luangkan waktu untuk Al-Quran.`,
-                    icon: '/quran-icon.svg'
-                });
-            } else if (Notification.permission !== 'denied') {
-                Notification.requestPermission();
+        try {
+            const now = new Date();
+            const [targetHour, targetMinute] = settings.notificationTime.split(':');
+            
+            if (now.getHours() === parseInt(targetHour) && now.getMinutes() === parseInt(targetMinute)) {
+                // Check if already notified today? 
+                // Simplified: Just notify. Browser throttles or user closes.
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Waktunya Ngaji!', {
+                        body: `Assalamualaikum ${user.username}, ayo luangkan waktu untuk Al-Quran.`,
+                        icon: '/quran-icon.svg'
+                    });
+                } else if ('Notification' in window && Notification.permission !== 'denied') {
+                    Notification.requestPermission();
+                }
             }
+        } catch (error) {
+            console.error('Notification error:', error);
         }
     };
 

@@ -2,8 +2,13 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const loadLogs = () => {
   try {
-    return JSON.parse(localStorage.getItem('logs')) || [];
-  } catch {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return [];
+    }
+    const logs = localStorage.getItem('logs');
+    return logs ? JSON.parse(logs) : [];
+  } catch (error) {
+    console.error('Error loading logs from localStorage:', error);
     return [];
   }
 };
