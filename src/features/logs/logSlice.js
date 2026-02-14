@@ -1,14 +1,14 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const loadLogs = () => {
   try {
-    if (typeof window === 'undefined' || !window.localStorage) {
+    if (typeof window === "undefined" || !window.localStorage) {
       return [];
     }
-    const logs = localStorage.getItem('logs');
+    const logs = localStorage.getItem("logs");
     return logs ? JSON.parse(logs) : [];
   } catch (error) {
-    console.error('Error loading logs from localStorage:', error);
+    console.error("Error loading logs from localStorage:", error);
     return [];
   }
 };
@@ -18,7 +18,7 @@ const initialState = {
 };
 
 const logSlice = createSlice({
-  name: 'logs',
+  name: "logs",
   initialState,
   reducers: {
     addLog: (state, action) => {
@@ -29,40 +29,40 @@ const logSlice = createSlice({
       // Forward Only Logic:
       // If same date and same Surah, check if we are just continuing or going back.
       if (lastLog && lastLog.date === newLog.date && lastLog.surah === newLog.surah) {
-          // If new start is <= last end, it's a re-read or backward move. Ignore.
-          // Unless it's a completely different part of surah?
-          // User said: "baca 1-10, balik 3-7 hitungannya 1 log".
-          // If we read 1-10, lastLog = 1-10.
-          // Then read 3-7. 3 < 10. Ignore.
-          // But if we read 11-20. 11 > 10. Add log?
-          // User said "hitungan 1 log". Does he mean Merge?
-          // "baca 1-10, trus balik 3-7 hitungannya 1 log".
-          // This implies the previous log remains, and we don't add a new one.
-          // So strict forward check:
-          if (newLog.ayatStart <= lastLog.ayatEnd) {
-              return; // Ignore backward/overlap traversal
-          }
+        // If new start is <= last end, it's a re-read or backward move. Ignore.
+        // Unless it's a completely different part of surah?
+        // User said: "baca 1-10, balik 3-7 hitungannya 1 log".
+        // If we read 1-10, lastLog = 1-10.
+        // Then read 3-7. 3 < 10. Ignore.
+        // But if we read 11-20. 11 > 10. Add log?
+        // User said "hitungan 1 log". Does he mean Merge?
+        // "baca 1-10, trus balik 3-7 hitungannya 1 log".
+        // This implies the previous log remains, and we don't add a new one.
+        // So strict forward check:
+        if (newLog.ayatStart <= lastLog.ayatEnd) {
+          return; // Ignore backward/overlap traversal
+        }
       }
 
       state.history.unshift(newLog);
-      
+
       // Auto-Cleanup: Keep only last 10 if count > 50
       if (state.history.length > 50) {
-          state.history = state.history.slice(0, 10);
+        state.history = state.history.slice(0, 10);
       }
-      
-      localStorage.setItem('logs', JSON.stringify(state.history));
+
+      localStorage.setItem("logs", JSON.stringify(state.history));
     },
     pruneLogs: (state) => {
-        if (state.history.length > 50) {
-            state.history = state.history.slice(0, 10);
-            localStorage.setItem('logs', JSON.stringify(state.history));
-        }
+      if (state.history.length > 50) {
+        state.history = state.history.slice(0, 10);
+        localStorage.setItem("logs", JSON.stringify(state.history));
+      }
     },
     clearLogs: (state) => {
-        state.history = [];
-        localStorage.setItem('logs', JSON.stringify([]));
-    }
+      state.history = [];
+      localStorage.setItem("logs", JSON.stringify([]));
+    },
   },
 });
 
