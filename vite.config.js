@@ -45,9 +45,12 @@ const copyQuranJsonPlugin = {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [copyQuranJsonPlugin, react({
+  plugins: [
+    copyQuranJsonPlugin,
+    react({
       babel: {
         plugins: [["babel-plugin-react-compiler"]],
       },
-    })],
+    }),
+  ],
 });
