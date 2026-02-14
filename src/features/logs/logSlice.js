@@ -53,9 +53,13 @@ const logSlice = createSlice({
             state.history = state.history.slice(0, 10);
             localStorage.setItem('logs', JSON.stringify(state.history));
         }
+    },
+    clearLogs: (state) => {
+        state.history = [];
+        localStorage.setItem('logs', JSON.stringify([]));
     }
   },
 });
 
-export const { addLog, pruneLogs } = logSlice.actions;
+export const { addLog, pruneLogs, clearLogs } = logSlice.actions;
 export default logSlice.reducer;

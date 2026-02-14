@@ -47,84 +47,76 @@ export function useQuranPage(startSurah, startAyah) {
             let currentA = startAyah;
             let count = 0;
 
-            // Load cache if needed or just fetch
-            // We might need to load multiple surahs
-            while (count < PAGE_SIZE) {
-                if (currentS > 114) break; // End of Quran
+            try {
+                // Load cache if needed or just fetch
+                // We might need to load multiple surahs
+                while (count < PAGE_SIZE) {
+                    if (currentS > 114) break; // End of Quran
 
-                const surahData = await loadSurah(currentS);
-                if (!surahData || !isMounted) return;
-
-                // Check if we need to insert header
-                if (currentA === 1) {
-                    resultSegments.push({ type: 'header', surah: surahData.number, name: surahData.name });
-                }
-
-                // Get ayahs from current surah starting at currentA
-                // surahData.ayahs should be array. Filter? Or just index.
-                // Assuming json format: { number: 1, name: "...", ayahs: [{ number: 1, text: "..." }] }
-                // Array index is number - 1 ?? usually API is 1-based number, array 0-based.
-                
-                // Let's verify JSON structure from user prompt:
-                // "ayahs": [ { "number": 1, "text": "..." } ]
-                // It seems sorted.
-                
-                const availableAyahs = surahData.ayahs.filter(a => a.number >= currentA);
-                
-                for (let ayah of availableAyahs) {
-                    if (count >= PAGE_SIZE) break;
-                    resultSegments.push({ 
-                        type: 'ayah', 
-                        surah: surahData.number, 
-                        number: ayah.number, 
-                        text: ayah.text 
-                    });
-                    count++;
-                    currentA++;
-                }
-
-                if (count < PAGE_SIZE) {
-                    // We finished this surah but need more ayahs
-                    currentS++;
-                    currentA = 1;
-                } else {
-                    // We filled the page
-                    // currentA is now at the next ayah (because we incremented after pushing)
-                }
-            }
-
-            if (isMounted) {
-                setSegments(resultSegments);
-                
-                // Calculate Next Start
-                if (currentS > 114) {
-                    setNextStart(null);
-                } else {
-                    // If we finished a surah exactly, next is NextSurah:1
-                    // If we are mid surah, next is CurrentSurah:CurrentAyah
-                    // Logic above:
-                    // If loop broke because count == PAGE_SIZE:
-                    // currentA is one step ahead of last pushed.
-                    // If loop broke because end of availableAyahs (and fetch next loop):
-                    // It handles logic.
-                    // Wait, if we exactly finished Surah 1 (7 ayahs).
-                    // We load Surah 2.
-                    // If we finish page exactly at end of Surah 1? (e.g. page size 7)
-                    // Then next iteration starts Surah 2.
+                    const surahData = await loadSurah(currentS);
                     
-                    // Simple logic:
-                    // Next page starts at currentS, currentA (calculated after loop)
-                     setNextStart({ surah: currentS, ayah: currentA });
+                    // Critical Fix: If surah fetch fails, stop to avoid infinite loop
+                    if (!surahData) {
+                        if (isMounted) {
+                             // If completely failed on first try, maybe throw or break?
+                             // But if we have some segments, we can show them?
+                             // For now, break loop.
+                             break;
+                        }
+                        return;
+                    }
+                    
+                    if (!isMounted) return;
+
+                    // Check if we need to insert header
+                    if (currentA === 1) {
+                        resultSegments.push({ type: 'header', surah: surahData.number, name: surahData.name });
+                    }
+
+                    const availableAyahs = surahData.ayahs.filter(a => a.number >= currentA);
+                    
+                    for (let ayah of availableAyahs) {
+                        if (count >= PAGE_SIZE) break;
+                        resultSegments.push({ 
+                            type: 'ayah', 
+                            surah: surahData.number, 
+                            number: ayah.number, 
+                            text: ayah.text 
+                        });
+                        count++;
+                        currentA++;
+                    }
+
+                    if (count < PAGE_SIZE) {
+                        // We finished this surah but need more ayahs
+                        currentS++;
+                        currentA = 1;
+                    } else {
+                        // We filled the page
+                        // currentA is now at the next ayah (because we incremented after pushing)
+                    }
                 }
 
-                // Calculate Prev Start (Rough approximation or strict?)
-                // Strict reverse calculation is complex.
-                // Simple: "Go back 15 ayahs".
-                // We can use a helper function to subtract 15 from (startSurah, startAyah).
-                const prev = calculatePrevStart(startSurah, startAyah, PAGE_SIZE);
-                setPrevStart(prev);
+                if (isMounted) {
+                    setSegments(resultSegments);
+                    
+                    // If no segments found (e.g. error loading), resultSegments is empty.
+                    // UI should handle empty segments.
+                    
+                    // Calculate Next Start
+                    if (currentS > 114) {
+                        setNextStart(null);
+                    } else {
+                         setNextStart({ surah: currentS, ayah: currentA });
+                    }
 
-                setLoading(false);
+                    const prev = calculatePrevStart(startSurah, startAyah, PAGE_SIZE);
+                    setPrevStart(prev);
+                }
+            } catch (err) {
+                console.error("Error fetching Quran page:", err);
+            } finally {
+                if (isMounted) setLoading(false);
             }
         };
 

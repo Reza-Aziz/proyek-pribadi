@@ -318,6 +318,12 @@ export default function QuranReader({ onBack, params }) {
                                      <div className="animate-spin rounded-full h-12 w-12 border-[3px] border-sand-200 border-t-primary-900"></div>
                                      <div className="text-primary-900 font-serif animate-pulse tracking-widest text-xs uppercase font-bold">Memuat Halaman...</div>
                                 </div>
+                            ) : segments.length === 0 ? (
+                                <div className="flex flex-col justify-center items-center h-[60vh] gap-4 text-center p-8">
+                                    <div className="text-4xl">⚠️</div>
+                                    <h3 className="font-bold text-primary-900 text-lg">Gagal Memuat Data</h3>
+                                    <p className="text-sm text-primary-700">Tidak dapat memuat ayat Al-Quran. Pastikan koneksi internet lancar atau data tersedia.</p>
+                                </div>
                             ) : (
                                 <div className="px-4 py-4"> 
                                     {segments.map((seg, idx) => {

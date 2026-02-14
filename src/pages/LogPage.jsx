@@ -1,10 +1,12 @@
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { clearLogs } from '../features/logs/logSlice';
 import { useState, useMemo } from 'react';
 import { SURAH_DATA } from '../utils/quranData';
 import { BookOpen, CheckCircle, Clock, Calendar, BarChart2, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LogPage() {
+    const dispatch = useDispatch();
     const { history } = useSelector(state => state.logs);
     const { targetChunks, targetPeriod } = useSelector(state => state.settings); // default 1 juz / day
 
@@ -128,6 +130,16 @@ export default function LogPage() {
                             <Clock size={18} className="text-primary-600"/> Riwayat
                         </h3>
                          <div className="flex gap-2">
+                            <button 
+                                onClick={() => {
+                                    if(window.confirm('Yakin ingin menghapus semua riwayat bacaan?')) {
+                                        dispatch(clearLogs());
+                                    }
+                                }}
+                                className="px-3 py-1.5 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100 hover:bg-red-100 transition"
+                            >
+                                Hapus
+                            </button>
                             <div className="relative">
                                 <Filter size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-primary-500" />
                                 <select 
