@@ -53,4 +53,25 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+    // Ensure consistent hashing
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/[name]-[hash].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: (assetInfo) => {
+          const info = (assetInfo.name || "").split(".");
+          const ext = info[info.length - 1] || "";
+          if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) {
+            return `assets/images/[name]-[hash][extname]`;
+          } else if (ext === "css") {
+            return `assets/[name]-[hash][extname]`;
+          }
+          return `assets/[name]-[hash][extname]`;
+        },
+      },
+    },
+  },
 });
