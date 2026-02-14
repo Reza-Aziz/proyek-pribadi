@@ -6,14 +6,14 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Copy quran-json to public folder during build with proper error handling
+// Copy quran-json to dist folder during build
 const copyQuranJsonPlugin = {
   name: "copy-quran-json",
   apply: "build",
-  enforce: "pre",
-  configResolved() {
+  enforce: "post",
+  generateBundle() {
     const sourceDir = path.join(__dirname, "quran-json/surah");
-    const targetDir = path.join(__dirname, "public/quran-json/surah");
+    const targetDir = path.join(__dirname, "dist/quran-json/surah");
 
     try {
       // Check if source exists first
@@ -36,7 +36,7 @@ const copyQuranJsonPlugin = {
         copied++;
       });
 
-      console.log(`✓ Copied ${copied} Quran JSON files to public/quran-json/`);
+      console.log(`✓ Copied ${copied} Quran JSON files to dist/quran-json/`);
     } catch (error) {
       console.warn("⚠️  Error copying quran-json files:", error.message);
     }
