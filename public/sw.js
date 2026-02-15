@@ -1,15 +1,7 @@
 const CACHE_NAME = "my-quran-v1";
-const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch(() => {
-        // Ignore errors for optional static assets
-      });
-    }),
-  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -38,75 +30,52 @@ self.addEventListener("fetch", (event) => {
   // Strategy 1: Quran JSON Data -> Cache First (Immutable)
   if (url.pathname.startsWith("/quran-json/")) {
     event.respondWith(
-      caches.open(CACHE_NAME).then((cache) => {
-        return cache.match(event.request).then((response) => {
-          return (
-            response ||
-            fetch(event.request)
-              .then((networkResponse) => {
-                // Only cache successful responses
-                if (networkResponse && networkResponse.status === 200) {
-                  cache.put(event.request, networkResponse.clone());
-                }
-                return networkResponse;
-              })
-              .catch(() => {
-                // Return cached version if offline
-                return response;
-              })
-          );
-        });
-      }),
-    );
-    return;
-  }
-
-  // Strategy 2: Assets (JS/CSS with hash) -> Network First with fallback
-  if (url.pathname.startsWith("/assets/")) {
-    event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          // Only cache successful responses
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse.clone());
-            });
+      caches
+        .match(event.request)
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
           }
-          return networkResponse;
+          return fetch(event.request).then((networkResponse) => {
+            // Only cache successful responses
+            if (networkResponse && networkResponse.status === 200) {
+              const cloneResponse = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, cloneResponse);
+              });
+            }
+            return networkResponse;
+          });
         })
         .catch(() => {
-          // Fallback to cache on network error
-          return caches.match(event.request);
+          // Return offline placeholder if needed
+          return new Response("Offline - data not cached", {
+            status: 503,
+            statusText: "Service Unavailable",
+          });
         }),
     );
     return;
   }
 
-  // Strategy 3: HTML/index routes -> Network First
-  if (url.pathname === "/" || url.pathname.endsWith(".html") || url.pathname === "/manifest.json") {
-    event.respondWith(
-      fetch(event.request, { cache: "no-store" })
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse.clone());
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          return caches.match(event.request);
-        }),
-    );
-    return;
-  }
-
-  // Strategy 4: Everything else -> Network First with fallback
+  // Strategy 2: Assets & HTML -> Network First, simple no clone issues
   event.respondWith(
     fetch(event.request)
-      .then((response) => response)
+      .then((response) => {
+        // Don't cache on the fly - let Vercel headers handle it
+        return response;
+      })
       .catch(() => {
-        return caches.match(event.request);
+        // Network failed - try cache as fallback
+        return (
+          caches.match(event.request).catch(() => {
+            // Nothing in cache - return offline page
+            return new Response("Offline", {
+              status: 503,
+              statusText: "Service Unavailable",
+            });
+          })
+        );
       }),
   );
 });
