@@ -1,8 +1,8 @@
 import { useSelector, useDispatch } from 'react-redux';
-import { clearLogs } from '../features/logs/logSlice';
+import { clearLogs, deleteLog } from '../features/logs/logSlice';
 import { useState, useMemo } from 'react';
 import { SURAH_DATA } from '../utils/quranData';
-import { BookOpen, CheckCircle, Clock, Calendar, BarChart2, Filter } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, Calendar, BarChart2, Filter, Trash2, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LogPage() {
@@ -13,17 +13,15 @@ export default function LogPage() {
     // Calculate Progress
     const today = new Date().toISOString().split('T')[0];
     const todaysLogs = history.filter(h => h.date === today);
-    
-    // Calculate Progress based on PAGES (1 Log = 1 Page)
-    // 1 Juz = 20 Pages.
     const pagesReadToday = todaysLogs.length; 
     const targetPages = (targetChunks || 1) * 20; 
-    
-    // Cap at 100% visually, but text can show more
     const progressPercent = Math.min(100, Math.round((pagesReadToday / targetPages) * 100));
 
-    const [filterPeriod, setFilterPeriod] = useState('all'); // all, today, yesterday, week
+    const [filterPeriod, setFilterPeriod] = useState('all'); 
     const [limit, setLimit] = useState(10);
+
+    // Modal State
+    const [deleteModal, setDeleteModal] = useState({ show: false, type: null, index: null, log: null });
 
     const filteredHistory = useMemo(() => {
         const now = new Date();
@@ -31,7 +29,6 @@ export default function LogPage() {
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
-        
         const lastWeek = new Date(now);
         lastWeek.setDate(lastWeek.getDate() - 7);
         const lastWeekTime = lastWeek.getTime();
@@ -57,22 +54,26 @@ export default function LogPage() {
 
     const formatDateTime = (dateStr, timeStr) => {
         if (!dateStr) return "-";
-        
         const dateObj = new Date(dateStr);
         const options = { weekday: 'short', day: 'numeric', month: 'short' };
-        const formattedDate = dateObj.toLocaleDateString('id-ID', options);
-        
-        return { date: formattedDate, time: timeStr };
+        return { 
+            date: dateObj.toLocaleDateString('id-ID', options), 
+            time: timeStr 
+        };
+    };
+
+    const confirmDelete = () => {
+        if (deleteModal.type === 'all') {
+            dispatch(clearLogs());
+        } else if (deleteModal.type === 'single' && deleteModal.index !== null) {
+            dispatch(deleteLog(deleteModal.index));
+        }
+        setDeleteModal({ show: false, type: null, index: null, log: null });
     };
 
     const containerVariants = {
         hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
-        }
+        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
     };
 
     const itemVariants = {
@@ -81,7 +82,7 @@ export default function LogPage() {
     };
 
     return (
-        <div className="h-full flex flex-col bg-sand-50">
+        <div className="h-full flex flex-col bg-sand-50 relative">
             {/* Headers */}
             <div className="p-6 pb-2 space-y-6 z-10">
                 <div className="flex justify-between items-center">
@@ -130,16 +131,14 @@ export default function LogPage() {
                             <Clock size={18} className="text-primary-600"/> Riwayat
                         </h3>
                          <div className="flex gap-2">
-                            <button 
-                                onClick={() => {
-                                    if(window.confirm('Yakin ingin menghapus semua riwayat bacaan?')) {
-                                        dispatch(clearLogs());
-                                    }
-                                }}
-                                className="px-3 py-1.5 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100 hover:bg-red-100 transition"
-                            >
-                                Hapus
-                            </button>
+                            {history.length > 0 && (
+                                <button 
+                                    onClick={() => setDeleteModal({ show: true, type: 'all' })}
+                                    className="px-3 py-1.5 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100 hover:bg-red-100 transition"
+                                >
+                                    Hapus Semua
+                                </button>
+                            )}
                             <div className="relative">
                                 <Filter size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-primary-500" />
                                 <select 
@@ -174,20 +173,45 @@ export default function LogPage() {
                     >
                         {displayedHistory.map((log, idx) => {
                             const { date, time } = formatDateTime(log.date, log.time);
+                            
+                            // Handle New vs Old Structure
+                            const isNewFormat = !!log.start;
+                            const startSurah = isNewFormat ? log.start.surah : log.surah;
+                            const endSurah = isNewFormat ? log.end.surah : log.surah; // in old format, surah didn't change in a log
+                            
+                            const startAyat = isNewFormat ? log.start.ayat : log.ayatStart;
+                            const endAyat = isNewFormat ? log.end.ayat : log.ayatEnd;
+
+                            const isCrossSurah = startSurah !== endSurah;
+
                             return (
                                 <motion.div 
                                     key={idx} 
                                     variants={itemVariants}
-                                    className="bg-white p-4 rounded-2xl shadow-sm border border-sand-100 flex justify-between items-center transition-all hover:shadow-md group will-change-transform"
+                                    onClick={() => {
+                                        const originalIndex = history.indexOf(log);
+                                        if (originalIndex !== -1) {
+                                            setDeleteModal({ show: true, type: 'single', index: originalIndex, log: log });
+                                        }
+                                    }}
+                                    className="bg-white p-4 rounded-2xl shadow-sm border border-sand-100 flex justify-between items-center transition-all hover:shadow-md group will-change-transform cursor-pointer hover:bg-red-50/50 hover:border-red-100 active:scale-[0.98]"
                                 >
                                     <div className="flex items-center gap-4">
-                                         <div className="w-10 h-10 flex items-center justify-center bg-sand-100 text-primary-800 font-bold text-sm rounded-full border border-sand-200 group-hover:bg-primary-50 group-hover:border-primary-200 transition-colors">
-                                            {log.surah}
+                                         <div className="w-10 h-10 flex min-w-[2.5rem] items-center justify-center bg-sand-100 text-primary-800 font-bold text-sm rounded-full border border-sand-200 group-hover:bg-primary-50 group-hover:border-primary-200 transition-colors">
+                                            {startSurah}
                                         </div>
                                         <div>
-                                            <div className="font-bold text-primary-900 text-sm">{getSurahName(log.surah)}</div>
+                                            <div className="font-bold text-primary-900 text-sm">
+                                                {isCrossSurah 
+                                                    ? `${getSurahName(startSurah)} → ${getSurahName(endSurah)}`
+                                                    : getSurahName(startSurah)}
+                                            </div>
                                             <div className="text-xs text-primary-500 mt-0.5 flex items-center gap-1">
-                                                <span className="bg-primary-50 px-1.5 py-0.5 rounded text-[10px] font-medium text-primary-700">Ayat {log.ayatStart}-{log.ayatEnd}</span>
+                                                <span className="bg-primary-50 px-1.5 py-0.5 rounded text-[10px] font-medium text-primary-700">
+                                                    {isCrossSurah 
+                                                        ? `Ayat ${startAyat} ... Ayat ${endAyat}`
+                                                        : `Ayat ${startAyat}-${endAyat}`}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -197,10 +221,54 @@ export default function LogPage() {
                                     </div>
                                 </motion.div>
                             )
-                        })}
+                        })} 
                     </motion.div>
                 )}
             </div>
+
+            {/* Custom Delete Modal */}
+            <AnimatePresence>
+                {deleteModal.show && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-primary-900/20 backdrop-blur-sm">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl border border-sand-200 text-center relative overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                             <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
+                                <Trash2 size={24} />
+                             </div>
+                             
+                             <h3 className="text-lg font-serif font-bold text-primary-900 mb-2">
+                                {deleteModal.type === 'all' ? 'Hapus Semua Riwayat?' : 'Hapus Riwayat Ini?'}
+                             </h3>
+                             
+                             <p className="text-sm text-primary-600 mb-6 px-2 leading-relaxed">
+                                {deleteModal.type === 'all' 
+                                    ? 'Apakah kamu yakin ingin menghapus seluruh catatan riwayat membaca? Tindakan ini tidak bisa dibatalkan.' 
+                                    : `Hapus catatan bacaan ${deleteModal.log ? getSurahName(deleteModal.log.surah) : ''} ayat ${deleteModal.log?.ayatStart}-${deleteModal.log?.ayatEnd}?`}
+                             </p>
+
+                             <div className="flex gap-3">
+                                 <button 
+                                    onClick={() => setDeleteModal({ show: false, type: null, index: null, log: null })}
+                                    className="flex-1 py-2.5 bg-sand-100 text-primary-700 rounded-xl font-bold text-sm hover:bg-sand-200 transition"
+                                 >
+                                    Batal
+                                 </button>
+                                 <button 
+                                    onClick={confirmDelete}
+                                    className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-bold text-sm shadow-md hover:bg-red-600 transition"
+                                 >
+                                    Hapus
+                                 </button>
+                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

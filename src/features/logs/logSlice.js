@@ -22,28 +22,26 @@ const logSlice = createSlice({
   initialState,
   reducers: {
     addLog: (state, action) => {
-      // action.payload: { date: 'YYYY-MM-DD', surah, ayatStart, ayatEnd }
+      // Payload: { date, start: { surah, ayat }, end: { surah, ayat } }
       const newLog = action.payload;
       const lastLog = state.history[0];
 
-      // Forward Only Logic:
-      // If same date and same Surah, check if we are just continuing or going back.
-      if (lastLog && lastLog.date === newLog.date && lastLog.surah === newLog.surah) {
-        // If new start is <= last end, it's a re-read or backward move. Ignore.
-        // Unless it's a completely different part of surah?
-        // User said: "baca 1-10, balik 3-7 hitungannya 1 log".
-        // If we read 1-10, lastLog = 1-10.
-        // Then read 3-7. 3 < 10. Ignore.
-        // But if we read 11-20. 11 > 10. Add log?
-        // User said "hitungan 1 log". Does he mean Merge?
-        // "baca 1-10, trus balik 3-7 hitungannya 1 log".
-        // This implies the previous log remains, and we don't add a new one.
-        // So strict forward check:
-        if (newLog.ayatStart <= lastLog.ayatEnd) {
-          return; // Ignore backward/overlap traversal
-        }
+      // Session Merging Logic:
+      // If same date AND same Start Position, we assume it's the same session.
+      // Update the END position.
+      if (lastLog && 
+          lastLog.date === newLog.date && 
+          lastLog.start && 
+          lastLog.start.surah === newLog.start.surah && 
+          lastLog.start.ayat === newLog.start.ayat) {
+        
+        // Update the end point
+        lastLog.end = newLog.end;
+        localStorage.setItem("logs", JSON.stringify(state.history));
+        return;
       }
 
+      // New Session Log
       state.history.unshift(newLog);
 
       // Auto-Cleanup: Keep only last 10 if count > 50
@@ -52,6 +50,13 @@ const logSlice = createSlice({
       }
 
       localStorage.setItem("logs", JSON.stringify(state.history));
+    },
+    deleteLog: (state, action) => {
+      const index = action.payload;
+      if (index >= 0 && index < state.history.length) {
+        state.history.splice(index, 1);
+        localStorage.setItem("logs", JSON.stringify(state.history));
+      }
     },
     pruneLogs: (state) => {
       if (state.history.length > 50) {
@@ -66,5 +71,5 @@ const logSlice = createSlice({
   },
 });
 
-export const { addLog, pruneLogs, clearLogs } = logSlice.actions;
+export const { addLog, deleteLog, pruneLogs, clearLogs } = logSlice.actions;
 export default logSlice.reducer;

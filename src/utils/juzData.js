@@ -1,5 +1,4 @@
-
-export const JUZ_START_MAPPING = [
+export const JUZ_STARTS = [
     { juz: 1, surah: 1, ayah: 1 },
     { juz: 2, surah: 2, ayah: 142 },
     { juz: 3, surah: 2, ayah: 253 },
@@ -29,28 +28,20 @@ export const JUZ_START_MAPPING = [
     { juz: 27, surah: 51, ayah: 31 },
     { juz: 28, surah: 58, ayah: 1 },
     { juz: 29, surah: 67, ayah: 1 },
-    { juz: 30, surah: 78, ayah: 1 },
+    { juz: 30, surah: 78, ayah: 1 }
 ];
 
 export const getJuzForAyah = (surahNumber, ayahNumber) => {
-    // Convert to integers to ensure correct comparison
     const surah = parseInt(surahNumber);
     const ayah = parseInt(ayahNumber);
 
-    if (isNaN(surah) || isNaN(ayah)) return null;
+    if (isNaN(surah) || isNaN(ayah)) return 1;
 
-    // Iterate backwards to find the first range that applies
-    // Since the array is sorted by position, we find the "highest" Juz start 
-    // that is less than or equal to the current position.
-    for (let i = JUZ_START_MAPPING.length - 1; i >= 0; i--) {
-        const mapping = JUZ_START_MAPPING[i];
-        
-        // If current surah is greater than mapping surah, OR
-        // if current surah is same but ayah is greater/equal
+    for (let i = JUZ_STARTS.length - 1; i >= 0; i--) {
+        const mapping = JUZ_STARTS[i];
         if (surah > mapping.surah || (surah === mapping.surah && ayah >= mapping.ayah)) {
             return mapping.juz;
         }
     }
-    
-    return 1; // Fallback (shouldn't happen for valid inputs)
+    return 1;
 };

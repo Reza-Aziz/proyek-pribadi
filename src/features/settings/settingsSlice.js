@@ -5,16 +5,12 @@ const loadSettings = () => {
     return JSON.parse(localStorage.getItem('settings')) || {
         targetChunks: 1, 
         targetPeriod: 'day', 
-        notificationsEnabled: false,
-        notificationTime: '05:00',
         fontSize: 28, // Default Arabic font size
     };
   } catch {
     return {
         targetChunks: 1,
         targetPeriod: 'day',
-        notificationsEnabled: false,
-        notificationTime: '05:00',
         fontSize: 28,
     };
   }

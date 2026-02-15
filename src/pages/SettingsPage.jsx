@@ -29,26 +29,6 @@ export default function SettingsPage() {
                     </select>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Notifikasi (Reminder)</label>
-                    <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg">
-                         <span className="font-medium">Aktifkan Notifikasi</span>
-                         <input 
-                            type="checkbox" 
-                            checked={settings.notificationsEnabled}
-                            onChange={(e) => handleChange('notificationsEnabled', e.target.checked)}
-                            className="w-5 h-5 accent-green-600"
-                        />
-                    </div>
-                     {settings.notificationsEnabled && (
-                        <input 
-                            type="time" 
-                            value={settings.notificationTime}
-                            onChange={(e) => handleChange('notificationTime', e.target.value)}
-                            className="w-full mt-2 p-3 rounded-lg border border-green-200"
-                        />
-                    )}
-                </div>
             </div>
 
             <button 
