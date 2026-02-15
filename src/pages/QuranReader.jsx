@@ -335,8 +335,8 @@ export default function QuranReader({ onBack, params }) {
                                                          <div className="w-56 h-56 border-[1px] border-primary-900 rounded-full scale-110"></div>
                                                     </div>
                                                     
-                                                    <div className="relative z-10">
-                                                        <div className="text-5xl text-primary-900 font-arabic mb-4 font-bold leading-relaxed drop-shadow-sm opacity-90">
+                                                    <div className="relative z-10 w-full overflow-hidden">
+                                                        <div className="text-primary-900 font-arabic mb-4 font-bold leading-relaxed drop-shadow-sm opacity-90 px-4 w-full text-center" style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}>
                                                           ﷽
                                                         </div>
                                                         <div className="inline-flex items-center gap-4">
